@@ -1,0 +1,2051 @@
+   0  $accept : program $end
+
+   1  program : program transition
+   2          | transition
+
+   3  transition : func
+   4             | stat
+
+   5  func : type ID '(' argument_list ')' compound_stat
+   6       | type ID '(' ')' compound_stat
+   7       | type ID '(' argument_list ')' SEMICOLON
+   8       | type ID '(' ')' SEMICOLON
+
+   9  func_name : ID
+
+  10  argument_list : argument_list ',' argument
+  11                | argument
+
+  12  argument : type ID
+
+  13  type : INT
+  14       | FLOAT
+  15       | BOOL
+  16       | STRING
+  17       | VOID
+
+  18  $$1 :
+
+  19  compound_stat : '{' $$1 block_list '}'
+  20                | '{' '}'
+
+  21  block_list : block_list block_item
+  22             | block_item
+
+  23  block_item : declaration
+  24             | stat
+
+  25  stat : declaration
+  26       | loop
+  27       | expression_stat
+  28       | return_stat
+  29       | print_func
+  30       | select
+  31       | func_call
+
+  32  $$2 :
+
+  33  func_call : ID $$2 '(' para_list ')' SEMICOLON
+
+  34  $$3 :
+
+  35  func_call : ID $$3 '(' ')' SEMICOLON
+
+  36  para_list : para_list ',' or_expression
+  37            | or_expression
+
+  38  return_stat : RETURN or_expression SEMICOLON
+
+  39  expression_stat : expression SEMICOLON
+
+  40  loop : WHILE '(' expression ')' compound_stat
+
+  41  select : IF '(' expression ')' compound_stat
+  42         | IF '(' expression ')' compound_stat ELSE compound_stat
+
+  43  expression : or_expression
+  44             | ID assign_symbol or_expression
+
+  45  assign_symbol : '='
+  46                | ADDASGN
+  47                | SUBASGN
+  48                | MULASGN
+  49                | DIVASGN
+  50                | MODASGN
+
+  51  or_expression : and_expression
+  52                | or_expression OR and_expression
+
+  53  and_expression : equal_expression
+  54                 | and_expression AND equal_expression
+
+  55  equal_expression : relation_expression
+  56                   | equal_expression EQ relation_expression
+  57                   | equal_expression NE relation_expression
+
+  58  relation_expression : add_expression
+  59                      | relation_expression '>' add_expression
+  60                      | relation_expression '<' add_expression
+  61                      | relation_expression MTE add_expression
+  62                      | relation_expression LTE add_expression
+
+  63  add_expression : multi_expression
+  64                 | add_expression '+' multi_expression
+  65                 | add_expression '-' multi_expression
+
+  66  multi_expression : unary_expression
+  67                   | multi_expression '*' unary_expression
+  68                   | multi_expression '/' unary_expression
+  69                   | multi_expression '%' unary_expression
+
+  70  unary_expression : postfix_expression
+  71                   | INC unary_expression
+  72                   | DEC unary_expression
+  73                   | NOT unary_expression
+
+  74  postfix_expression : simple_expression
+  75                     | postfix_expression INC
+  76                     | postfix_expression DEC
+
+  77  simple_expression : const
+  78                    | ID
+
+  79  declaration : type ID '=' initialzer SEMICOLON
+  80              | type ID SEMICOLON
+
+  81  initialzer : or_expression
+
+  82  const : I_CONST
+  83        | F_CONST
+  84        | '"' STR_CONST '"'
+  85        | TRUE
+  86        | FALSE
+
+  87  $$4 :
+
+  88  print_func : PRINT '(' ID $$4 ')' SEMICOLON
+  89             | PRINT '(' '"' STR_CONST '"' ')' SEMICOLON
+
+state 0
+	$accept : . program $end  (0)
+
+	PRINT  shift 1
+	IF  shift 2
+	WHILE  shift 3
+	RETURN  shift 4
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	ID  shift 17
+	'"'  shift 18
+	.  error
+
+	program  goto 19
+	stat  goto 20
+	type  goto 21
+	transition  goto 22
+	func  goto 23
+	declaration  goto 24
+	loop  goto 25
+	expression_stat  goto 26
+	return_stat  goto 27
+	print_func  goto 28
+	select  goto 29
+	func_call  goto 30
+	or_expression  goto 31
+	expression  goto 32
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 1
+	print_func : PRINT . '(' ID $$4 ')' SEMICOLON  (88)
+	print_func : PRINT . '(' '"' STR_CONST '"' ')' SEMICOLON  (89)
+
+	'('  shift 42
+	.  error
+
+
+state 2
+	select : IF . '(' expression ')' compound_stat  (41)
+	select : IF . '(' expression ')' compound_stat ELSE compound_stat  (42)
+
+	'('  shift 43
+	.  error
+
+
+state 3
+	loop : WHILE . '(' expression ')' compound_stat  (40)
+
+	'('  shift 44
+	.  error
+
+
+state 4
+	return_stat : RETURN . or_expression SEMICOLON  (38)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 46
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 5
+	unary_expression : INC . unary_expression  (71)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 47
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 6
+	unary_expression : DEC . unary_expression  (72)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 48
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 7
+	unary_expression : NOT . unary_expression  (73)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 49
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 8
+	const : I_CONST .  (82)
+
+	.  reduce 82
+
+
+state 9
+	const : F_CONST .  (83)
+
+	.  reduce 83
+
+
+state 10
+	const : TRUE .  (85)
+
+	.  reduce 85
+
+
+state 11
+	const : FALSE .  (86)
+
+	.  reduce 86
+
+
+state 12
+	type : VOID .  (17)
+
+	.  reduce 17
+
+
+state 13
+	type : INT .  (13)
+
+	.  reduce 13
+
+
+state 14
+	type : FLOAT .  (14)
+
+	.  reduce 14
+
+
+state 15
+	type : BOOL .  (15)
+
+	.  reduce 15
+
+
+state 16
+	type : STRING .  (16)
+
+	.  reduce 16
+
+
+17: reduce/reduce conflict (reduce 32, reduce 34) on '('
+state 17
+	func_call : ID . $$2 '(' para_list ')' SEMICOLON  (33)
+	func_call : ID . $$3 '(' ')' SEMICOLON  (35)
+	expression : ID . assign_symbol or_expression  (44)
+	simple_expression : ID .  (78)
+	$$2 : .  (32)
+	$$3 : .  (34)
+
+	ADDASGN  shift 50
+	SUBASGN  shift 51
+	MULASGN  shift 52
+	DIVASGN  shift 53
+	MODASGN  shift 54
+	'='  shift 55
+	SEMICOLON  reduce 78
+	INC  reduce 78
+	DEC  reduce 78
+	MTE  reduce 78
+	LTE  reduce 78
+	EQ  reduce 78
+	NE  reduce 78
+	AND  reduce 78
+	OR  reduce 78
+	'('  reduce 32
+	'>'  reduce 78
+	'<'  reduce 78
+	'+'  reduce 78
+	'-'  reduce 78
+	'*'  reduce 78
+	'/'  reduce 78
+	'%'  reduce 78
+
+	$$2  goto 56
+	$$3  goto 57
+	assign_symbol  goto 58
+
+
+state 18
+	const : '"' . STR_CONST '"'  (84)
+
+	STR_CONST  shift 59
+	.  error
+
+
+state 19
+	$accept : program . $end  (0)
+	program : program . transition  (1)
+
+	$end  accept
+	PRINT  shift 1
+	IF  shift 2
+	WHILE  shift 3
+	RETURN  shift 4
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	ID  shift 17
+	'"'  shift 18
+	.  error
+
+	stat  goto 20
+	type  goto 21
+	transition  goto 60
+	func  goto 23
+	declaration  goto 24
+	loop  goto 25
+	expression_stat  goto 26
+	return_stat  goto 27
+	print_func  goto 28
+	select  goto 29
+	func_call  goto 30
+	or_expression  goto 31
+	expression  goto 32
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 20
+	transition : stat .  (4)
+
+	.  reduce 4
+
+
+state 21
+	func : type . ID '(' argument_list ')' compound_stat  (5)
+	func : type . ID '(' ')' compound_stat  (6)
+	func : type . ID '(' argument_list ')' SEMICOLON  (7)
+	func : type . ID '(' ')' SEMICOLON  (8)
+	declaration : type . ID '=' initialzer SEMICOLON  (79)
+	declaration : type . ID SEMICOLON  (80)
+
+	ID  shift 61
+	.  error
+
+
+state 22
+	program : transition .  (2)
+
+	.  reduce 2
+
+
+state 23
+	transition : func .  (3)
+
+	.  reduce 3
+
+
+state 24
+	stat : declaration .  (25)
+
+	.  reduce 25
+
+
+state 25
+	stat : loop .  (26)
+
+	.  reduce 26
+
+
+state 26
+	stat : expression_stat .  (27)
+
+	.  reduce 27
+
+
+state 27
+	stat : return_stat .  (28)
+
+	.  reduce 28
+
+
+state 28
+	stat : print_func .  (29)
+
+	.  reduce 29
+
+
+state 29
+	stat : select .  (30)
+
+	.  reduce 30
+
+
+state 30
+	stat : func_call .  (31)
+
+	.  reduce 31
+
+
+state 31
+	expression : or_expression .  (43)
+	or_expression : or_expression . OR and_expression  (52)
+
+	OR  shift 62
+	SEMICOLON  reduce 43
+	')'  reduce 43
+
+
+state 32
+	expression_stat : expression . SEMICOLON  (39)
+
+	SEMICOLON  shift 63
+	.  error
+
+
+state 33
+	or_expression : and_expression .  (51)
+	and_expression : and_expression . AND equal_expression  (54)
+
+	AND  shift 64
+	SEMICOLON  reduce 51
+	OR  reduce 51
+	')'  reduce 51
+	','  reduce 51
+
+
+state 34
+	and_expression : equal_expression .  (53)
+	equal_expression : equal_expression . EQ relation_expression  (56)
+	equal_expression : equal_expression . NE relation_expression  (57)
+
+	EQ  shift 65
+	NE  shift 66
+	SEMICOLON  reduce 53
+	AND  reduce 53
+	OR  reduce 53
+	')'  reduce 53
+	','  reduce 53
+
+
+state 35
+	equal_expression : relation_expression .  (55)
+	relation_expression : relation_expression . '>' add_expression  (59)
+	relation_expression : relation_expression . '<' add_expression  (60)
+	relation_expression : relation_expression . MTE add_expression  (61)
+	relation_expression : relation_expression . LTE add_expression  (62)
+
+	MTE  shift 67
+	LTE  shift 68
+	'>'  shift 69
+	'<'  shift 70
+	SEMICOLON  reduce 55
+	EQ  reduce 55
+	NE  reduce 55
+	AND  reduce 55
+	OR  reduce 55
+	')'  reduce 55
+	','  reduce 55
+
+
+state 36
+	relation_expression : add_expression .  (58)
+	add_expression : add_expression . '+' multi_expression  (64)
+	add_expression : add_expression . '-' multi_expression  (65)
+
+	'+'  shift 71
+	'-'  shift 72
+	SEMICOLON  reduce 58
+	MTE  reduce 58
+	LTE  reduce 58
+	EQ  reduce 58
+	NE  reduce 58
+	AND  reduce 58
+	OR  reduce 58
+	')'  reduce 58
+	','  reduce 58
+	'>'  reduce 58
+	'<'  reduce 58
+
+
+state 37
+	add_expression : multi_expression .  (63)
+	multi_expression : multi_expression . '*' unary_expression  (67)
+	multi_expression : multi_expression . '/' unary_expression  (68)
+	multi_expression : multi_expression . '%' unary_expression  (69)
+
+	'*'  shift 73
+	'/'  shift 74
+	'%'  shift 75
+	SEMICOLON  reduce 63
+	MTE  reduce 63
+	LTE  reduce 63
+	EQ  reduce 63
+	NE  reduce 63
+	AND  reduce 63
+	OR  reduce 63
+	')'  reduce 63
+	','  reduce 63
+	'>'  reduce 63
+	'<'  reduce 63
+	'+'  reduce 63
+	'-'  reduce 63
+
+
+state 38
+	multi_expression : unary_expression .  (66)
+
+	.  reduce 66
+
+
+state 39
+	unary_expression : postfix_expression .  (70)
+	postfix_expression : postfix_expression . INC  (75)
+	postfix_expression : postfix_expression . DEC  (76)
+
+	INC  shift 76
+	DEC  shift 77
+	SEMICOLON  reduce 70
+	MTE  reduce 70
+	LTE  reduce 70
+	EQ  reduce 70
+	NE  reduce 70
+	AND  reduce 70
+	OR  reduce 70
+	')'  reduce 70
+	','  reduce 70
+	'>'  reduce 70
+	'<'  reduce 70
+	'+'  reduce 70
+	'-'  reduce 70
+	'*'  reduce 70
+	'/'  reduce 70
+	'%'  reduce 70
+
+
+state 40
+	postfix_expression : simple_expression .  (74)
+
+	.  reduce 74
+
+
+state 41
+	simple_expression : const .  (77)
+
+	.  reduce 77
+
+
+state 42
+	print_func : PRINT '(' . ID $$4 ')' SEMICOLON  (88)
+	print_func : PRINT '(' . '"' STR_CONST '"' ')' SEMICOLON  (89)
+
+	ID  shift 78
+	'"'  shift 79
+	.  error
+
+
+state 43
+	select : IF '(' . expression ')' compound_stat  (41)
+	select : IF '(' . expression ')' compound_stat ELSE compound_stat  (42)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 80
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 31
+	expression  goto 81
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 44
+	loop : WHILE '(' . expression ')' compound_stat  (40)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 80
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 31
+	expression  goto 82
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 45
+	simple_expression : ID .  (78)
+
+	.  reduce 78
+
+
+state 46
+	return_stat : RETURN or_expression . SEMICOLON  (38)
+	or_expression : or_expression . OR and_expression  (52)
+
+	SEMICOLON  shift 83
+	OR  shift 62
+	.  error
+
+
+state 47
+	unary_expression : INC unary_expression .  (71)
+
+	.  reduce 71
+
+
+state 48
+	unary_expression : DEC unary_expression .  (72)
+
+	.  reduce 72
+
+
+state 49
+	unary_expression : NOT unary_expression .  (73)
+
+	.  reduce 73
+
+
+state 50
+	assign_symbol : ADDASGN .  (46)
+
+	.  reduce 46
+
+
+state 51
+	assign_symbol : SUBASGN .  (47)
+
+	.  reduce 47
+
+
+state 52
+	assign_symbol : MULASGN .  (48)
+
+	.  reduce 48
+
+
+state 53
+	assign_symbol : DIVASGN .  (49)
+
+	.  reduce 49
+
+
+state 54
+	assign_symbol : MODASGN .  (50)
+
+	.  reduce 50
+
+
+state 55
+	assign_symbol : '=' .  (45)
+
+	.  reduce 45
+
+
+state 56
+	func_call : ID $$2 . '(' para_list ')' SEMICOLON  (33)
+
+	'('  shift 84
+	.  error
+
+
+state 57
+	func_call : ID $$3 . '(' ')' SEMICOLON  (35)
+
+	'('  shift 85
+	.  error
+
+
+state 58
+	expression : ID assign_symbol . or_expression  (44)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 86
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 59
+	const : '"' STR_CONST . '"'  (84)
+
+	'"'  shift 87
+	.  error
+
+
+state 60
+	program : program transition .  (1)
+
+	.  reduce 1
+
+
+state 61
+	func : type ID . '(' argument_list ')' compound_stat  (5)
+	func : type ID . '(' ')' compound_stat  (6)
+	func : type ID . '(' argument_list ')' SEMICOLON  (7)
+	func : type ID . '(' ')' SEMICOLON  (8)
+	declaration : type ID . '=' initialzer SEMICOLON  (79)
+	declaration : type ID . SEMICOLON  (80)
+
+	SEMICOLON  shift 88
+	'('  shift 89
+	'='  shift 90
+	.  error
+
+
+state 62
+	or_expression : or_expression OR . and_expression  (52)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	and_expression  goto 91
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 63
+	expression_stat : expression SEMICOLON .  (39)
+
+	.  reduce 39
+
+
+state 64
+	and_expression : and_expression AND . equal_expression  (54)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	equal_expression  goto 92
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 65
+	equal_expression : equal_expression EQ . relation_expression  (56)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	relation_expression  goto 93
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 66
+	equal_expression : equal_expression NE . relation_expression  (57)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	relation_expression  goto 94
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 67
+	relation_expression : relation_expression MTE . add_expression  (61)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	add_expression  goto 95
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 68
+	relation_expression : relation_expression LTE . add_expression  (62)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	add_expression  goto 96
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 69
+	relation_expression : relation_expression '>' . add_expression  (59)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	add_expression  goto 97
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 70
+	relation_expression : relation_expression '<' . add_expression  (60)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	add_expression  goto 98
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 71
+	add_expression : add_expression '+' . multi_expression  (64)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	multi_expression  goto 99
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 72
+	add_expression : add_expression '-' . multi_expression  (65)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	multi_expression  goto 100
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 73
+	multi_expression : multi_expression '*' . unary_expression  (67)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 101
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 74
+	multi_expression : multi_expression '/' . unary_expression  (68)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 102
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 75
+	multi_expression : multi_expression '%' . unary_expression  (69)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	unary_expression  goto 103
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 76
+	postfix_expression : postfix_expression INC .  (75)
+
+	.  reduce 75
+
+
+state 77
+	postfix_expression : postfix_expression DEC .  (76)
+
+	.  reduce 76
+
+
+state 78
+	print_func : PRINT '(' ID . $$4 ')' SEMICOLON  (88)
+	$$4 : .  (87)
+
+	.  reduce 87
+
+	$$4  goto 104
+
+
+state 79
+	print_func : PRINT '(' '"' . STR_CONST '"' ')' SEMICOLON  (89)
+
+	STR_CONST  shift 105
+	.  error
+
+
+state 80
+	expression : ID . assign_symbol or_expression  (44)
+	simple_expression : ID .  (78)
+
+	ADDASGN  shift 50
+	SUBASGN  shift 51
+	MULASGN  shift 52
+	DIVASGN  shift 53
+	MODASGN  shift 54
+	'='  shift 55
+	INC  reduce 78
+	DEC  reduce 78
+	MTE  reduce 78
+	LTE  reduce 78
+	EQ  reduce 78
+	NE  reduce 78
+	AND  reduce 78
+	OR  reduce 78
+	')'  reduce 78
+	'>'  reduce 78
+	'<'  reduce 78
+	'+'  reduce 78
+	'-'  reduce 78
+	'*'  reduce 78
+	'/'  reduce 78
+	'%'  reduce 78
+
+	assign_symbol  goto 58
+
+
+state 81
+	select : IF '(' expression . ')' compound_stat  (41)
+	select : IF '(' expression . ')' compound_stat ELSE compound_stat  (42)
+
+	')'  shift 106
+	.  error
+
+
+state 82
+	loop : WHILE '(' expression . ')' compound_stat  (40)
+
+	')'  shift 107
+	.  error
+
+
+state 83
+	return_stat : RETURN or_expression SEMICOLON .  (38)
+
+	.  reduce 38
+
+
+state 84
+	func_call : ID $$2 '(' . para_list ')' SEMICOLON  (33)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	para_list  goto 108
+	or_expression  goto 109
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 85
+	func_call : ID $$3 '(' . ')' SEMICOLON  (35)
+
+	')'  shift 110
+	.  error
+
+
+state 86
+	expression : ID assign_symbol or_expression .  (44)
+	or_expression : or_expression . OR and_expression  (52)
+
+	OR  shift 62
+	SEMICOLON  reduce 44
+	')'  reduce 44
+
+
+state 87
+	const : '"' STR_CONST '"' .  (84)
+
+	.  reduce 84
+
+
+state 88
+	declaration : type ID SEMICOLON .  (80)
+
+	.  reduce 80
+
+
+state 89
+	func : type ID '(' . argument_list ')' compound_stat  (5)
+	func : type ID '(' . ')' compound_stat  (6)
+	func : type ID '(' . argument_list ')' SEMICOLON  (7)
+	func : type ID '(' . ')' SEMICOLON  (8)
+
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	')'  shift 111
+	.  error
+
+	type  goto 112
+	argument  goto 113
+	argument_list  goto 114
+
+
+state 90
+	declaration : type ID '=' . initialzer SEMICOLON  (79)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 115
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+	initialzer  goto 116
+
+
+state 91
+	or_expression : or_expression OR and_expression .  (52)
+	and_expression : and_expression . AND equal_expression  (54)
+
+	AND  shift 64
+	SEMICOLON  reduce 52
+	OR  reduce 52
+	')'  reduce 52
+	','  reduce 52
+
+
+state 92
+	and_expression : and_expression AND equal_expression .  (54)
+	equal_expression : equal_expression . EQ relation_expression  (56)
+	equal_expression : equal_expression . NE relation_expression  (57)
+
+	EQ  shift 65
+	NE  shift 66
+	SEMICOLON  reduce 54
+	AND  reduce 54
+	OR  reduce 54
+	')'  reduce 54
+	','  reduce 54
+
+
+state 93
+	equal_expression : equal_expression EQ relation_expression .  (56)
+	relation_expression : relation_expression . '>' add_expression  (59)
+	relation_expression : relation_expression . '<' add_expression  (60)
+	relation_expression : relation_expression . MTE add_expression  (61)
+	relation_expression : relation_expression . LTE add_expression  (62)
+
+	MTE  shift 67
+	LTE  shift 68
+	'>'  shift 69
+	'<'  shift 70
+	SEMICOLON  reduce 56
+	EQ  reduce 56
+	NE  reduce 56
+	AND  reduce 56
+	OR  reduce 56
+	')'  reduce 56
+	','  reduce 56
+
+
+state 94
+	equal_expression : equal_expression NE relation_expression .  (57)
+	relation_expression : relation_expression . '>' add_expression  (59)
+	relation_expression : relation_expression . '<' add_expression  (60)
+	relation_expression : relation_expression . MTE add_expression  (61)
+	relation_expression : relation_expression . LTE add_expression  (62)
+
+	MTE  shift 67
+	LTE  shift 68
+	'>'  shift 69
+	'<'  shift 70
+	SEMICOLON  reduce 57
+	EQ  reduce 57
+	NE  reduce 57
+	AND  reduce 57
+	OR  reduce 57
+	')'  reduce 57
+	','  reduce 57
+
+
+state 95
+	relation_expression : relation_expression MTE add_expression .  (61)
+	add_expression : add_expression . '+' multi_expression  (64)
+	add_expression : add_expression . '-' multi_expression  (65)
+
+	'+'  shift 71
+	'-'  shift 72
+	SEMICOLON  reduce 61
+	MTE  reduce 61
+	LTE  reduce 61
+	EQ  reduce 61
+	NE  reduce 61
+	AND  reduce 61
+	OR  reduce 61
+	')'  reduce 61
+	','  reduce 61
+	'>'  reduce 61
+	'<'  reduce 61
+
+
+state 96
+	relation_expression : relation_expression LTE add_expression .  (62)
+	add_expression : add_expression . '+' multi_expression  (64)
+	add_expression : add_expression . '-' multi_expression  (65)
+
+	'+'  shift 71
+	'-'  shift 72
+	SEMICOLON  reduce 62
+	MTE  reduce 62
+	LTE  reduce 62
+	EQ  reduce 62
+	NE  reduce 62
+	AND  reduce 62
+	OR  reduce 62
+	')'  reduce 62
+	','  reduce 62
+	'>'  reduce 62
+	'<'  reduce 62
+
+
+state 97
+	relation_expression : relation_expression '>' add_expression .  (59)
+	add_expression : add_expression . '+' multi_expression  (64)
+	add_expression : add_expression . '-' multi_expression  (65)
+
+	'+'  shift 71
+	'-'  shift 72
+	SEMICOLON  reduce 59
+	MTE  reduce 59
+	LTE  reduce 59
+	EQ  reduce 59
+	NE  reduce 59
+	AND  reduce 59
+	OR  reduce 59
+	')'  reduce 59
+	','  reduce 59
+	'>'  reduce 59
+	'<'  reduce 59
+
+
+state 98
+	relation_expression : relation_expression '<' add_expression .  (60)
+	add_expression : add_expression . '+' multi_expression  (64)
+	add_expression : add_expression . '-' multi_expression  (65)
+
+	'+'  shift 71
+	'-'  shift 72
+	SEMICOLON  reduce 60
+	MTE  reduce 60
+	LTE  reduce 60
+	EQ  reduce 60
+	NE  reduce 60
+	AND  reduce 60
+	OR  reduce 60
+	')'  reduce 60
+	','  reduce 60
+	'>'  reduce 60
+	'<'  reduce 60
+
+
+state 99
+	add_expression : add_expression '+' multi_expression .  (64)
+	multi_expression : multi_expression . '*' unary_expression  (67)
+	multi_expression : multi_expression . '/' unary_expression  (68)
+	multi_expression : multi_expression . '%' unary_expression  (69)
+
+	'*'  shift 73
+	'/'  shift 74
+	'%'  shift 75
+	SEMICOLON  reduce 64
+	MTE  reduce 64
+	LTE  reduce 64
+	EQ  reduce 64
+	NE  reduce 64
+	AND  reduce 64
+	OR  reduce 64
+	')'  reduce 64
+	','  reduce 64
+	'>'  reduce 64
+	'<'  reduce 64
+	'+'  reduce 64
+	'-'  reduce 64
+
+
+state 100
+	add_expression : add_expression '-' multi_expression .  (65)
+	multi_expression : multi_expression . '*' unary_expression  (67)
+	multi_expression : multi_expression . '/' unary_expression  (68)
+	multi_expression : multi_expression . '%' unary_expression  (69)
+
+	'*'  shift 73
+	'/'  shift 74
+	'%'  shift 75
+	SEMICOLON  reduce 65
+	MTE  reduce 65
+	LTE  reduce 65
+	EQ  reduce 65
+	NE  reduce 65
+	AND  reduce 65
+	OR  reduce 65
+	')'  reduce 65
+	','  reduce 65
+	'>'  reduce 65
+	'<'  reduce 65
+	'+'  reduce 65
+	'-'  reduce 65
+
+
+state 101
+	multi_expression : multi_expression '*' unary_expression .  (67)
+
+	.  reduce 67
+
+
+state 102
+	multi_expression : multi_expression '/' unary_expression .  (68)
+
+	.  reduce 68
+
+
+state 103
+	multi_expression : multi_expression '%' unary_expression .  (69)
+
+	.  reduce 69
+
+
+state 104
+	print_func : PRINT '(' ID $$4 . ')' SEMICOLON  (88)
+
+	')'  shift 117
+	.  error
+
+
+state 105
+	print_func : PRINT '(' '"' STR_CONST . '"' ')' SEMICOLON  (89)
+
+	'"'  shift 118
+	.  error
+
+
+state 106
+	select : IF '(' expression ')' . compound_stat  (41)
+	select : IF '(' expression ')' . compound_stat ELSE compound_stat  (42)
+
+	'{'  shift 119
+	.  error
+
+	compound_stat  goto 120
+
+
+state 107
+	loop : WHILE '(' expression ')' . compound_stat  (40)
+
+	'{'  shift 119
+	.  error
+
+	compound_stat  goto 121
+
+
+state 108
+	func_call : ID $$2 '(' para_list . ')' SEMICOLON  (33)
+	para_list : para_list . ',' or_expression  (36)
+
+	')'  shift 122
+	','  shift 123
+	.  error
+
+
+state 109
+	para_list : or_expression .  (37)
+	or_expression : or_expression . OR and_expression  (52)
+
+	OR  shift 62
+	')'  reduce 37
+	','  reduce 37
+
+
+state 110
+	func_call : ID $$3 '(' ')' . SEMICOLON  (35)
+
+	SEMICOLON  shift 124
+	.  error
+
+
+state 111
+	func : type ID '(' ')' . compound_stat  (6)
+	func : type ID '(' ')' . SEMICOLON  (8)
+
+	SEMICOLON  shift 125
+	'{'  shift 119
+	.  error
+
+	compound_stat  goto 126
+
+
+state 112
+	argument : type . ID  (12)
+
+	ID  shift 127
+	.  error
+
+
+state 113
+	argument_list : argument .  (11)
+
+	.  reduce 11
+
+
+state 114
+	func : type ID '(' argument_list . ')' compound_stat  (5)
+	func : type ID '(' argument_list . ')' SEMICOLON  (7)
+	argument_list : argument_list . ',' argument  (10)
+
+	')'  shift 128
+	','  shift 129
+	.  error
+
+
+state 115
+	or_expression : or_expression . OR and_expression  (52)
+	initialzer : or_expression .  (81)
+
+	OR  shift 62
+	SEMICOLON  reduce 81
+
+
+state 116
+	declaration : type ID '=' initialzer . SEMICOLON  (79)
+
+	SEMICOLON  shift 130
+	.  error
+
+
+state 117
+	print_func : PRINT '(' ID $$4 ')' . SEMICOLON  (88)
+
+	SEMICOLON  shift 131
+	.  error
+
+
+state 118
+	print_func : PRINT '(' '"' STR_CONST '"' . ')' SEMICOLON  (89)
+
+	')'  shift 132
+	.  error
+
+
+state 119
+	compound_stat : '{' . $$1 block_list '}'  (19)
+	compound_stat : '{' . '}'  (20)
+	$$1 : .  (18)
+
+	'}'  shift 133
+	PRINT  reduce 18
+	IF  reduce 18
+	WHILE  reduce 18
+	RETURN  reduce 18
+	INC  reduce 18
+	DEC  reduce 18
+	NOT  reduce 18
+	I_CONST  reduce 18
+	F_CONST  reduce 18
+	TRUE  reduce 18
+	FALSE  reduce 18
+	VOID  reduce 18
+	INT  reduce 18
+	FLOAT  reduce 18
+	BOOL  reduce 18
+	STRING  reduce 18
+	ID  reduce 18
+	'"'  reduce 18
+
+	$$1  goto 134
+
+
+state 120
+	select : IF '(' expression ')' compound_stat .  (41)
+	select : IF '(' expression ')' compound_stat . ELSE compound_stat  (42)
+
+	ELSE  shift 135
+	$end  reduce 41
+	PRINT  reduce 41
+	IF  reduce 41
+	WHILE  reduce 41
+	RETURN  reduce 41
+	INC  reduce 41
+	DEC  reduce 41
+	NOT  reduce 41
+	I_CONST  reduce 41
+	F_CONST  reduce 41
+	TRUE  reduce 41
+	FALSE  reduce 41
+	VOID  reduce 41
+	INT  reduce 41
+	FLOAT  reduce 41
+	BOOL  reduce 41
+	STRING  reduce 41
+	ID  reduce 41
+	'}'  reduce 41
+	'"'  reduce 41
+
+
+state 121
+	loop : WHILE '(' expression ')' compound_stat .  (40)
+
+	.  reduce 40
+
+
+state 122
+	func_call : ID $$2 '(' para_list ')' . SEMICOLON  (33)
+
+	SEMICOLON  shift 136
+	.  error
+
+
+state 123
+	para_list : para_list ',' . or_expression  (36)
+
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	ID  shift 45
+	'"'  shift 18
+	.  error
+
+	or_expression  goto 137
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 124
+	func_call : ID $$3 '(' ')' SEMICOLON .  (35)
+
+	.  reduce 35
+
+
+state 125
+	func : type ID '(' ')' SEMICOLON .  (8)
+
+	.  reduce 8
+
+
+state 126
+	func : type ID '(' ')' compound_stat .  (6)
+
+	.  reduce 6
+
+
+state 127
+	argument : type ID .  (12)
+
+	.  reduce 12
+
+
+state 128
+	func : type ID '(' argument_list ')' . compound_stat  (5)
+	func : type ID '(' argument_list ')' . SEMICOLON  (7)
+
+	SEMICOLON  shift 138
+	'{'  shift 119
+	.  error
+
+	compound_stat  goto 139
+
+
+state 129
+	argument_list : argument_list ',' . argument  (10)
+
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	.  error
+
+	type  goto 112
+	argument  goto 140
+
+
+state 130
+	declaration : type ID '=' initialzer SEMICOLON .  (79)
+
+	.  reduce 79
+
+
+state 131
+	print_func : PRINT '(' ID $$4 ')' SEMICOLON .  (88)
+
+	.  reduce 88
+
+
+state 132
+	print_func : PRINT '(' '"' STR_CONST '"' ')' . SEMICOLON  (89)
+
+	SEMICOLON  shift 141
+	.  error
+
+
+state 133
+	compound_stat : '{' '}' .  (20)
+
+	.  reduce 20
+
+
+state 134
+	compound_stat : '{' $$1 . block_list '}'  (19)
+
+	PRINT  shift 1
+	IF  shift 2
+	WHILE  shift 3
+	RETURN  shift 4
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	ID  shift 17
+	'"'  shift 18
+	.  error
+
+	stat  goto 142
+	type  goto 143
+	block_list  goto 144
+	block_item  goto 145
+	declaration  goto 146
+	loop  goto 25
+	expression_stat  goto 26
+	return_stat  goto 27
+	print_func  goto 28
+	select  goto 29
+	func_call  goto 30
+	or_expression  goto 31
+	expression  goto 32
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 135
+	select : IF '(' expression ')' compound_stat ELSE . compound_stat  (42)
+
+	'{'  shift 119
+	.  error
+
+	compound_stat  goto 147
+
+
+state 136
+	func_call : ID $$2 '(' para_list ')' SEMICOLON .  (33)
+
+	.  reduce 33
+
+
+state 137
+	para_list : para_list ',' or_expression .  (36)
+	or_expression : or_expression . OR and_expression  (52)
+
+	OR  shift 62
+	')'  reduce 36
+	','  reduce 36
+
+
+state 138
+	func : type ID '(' argument_list ')' SEMICOLON .  (7)
+
+	.  reduce 7
+
+
+state 139
+	func : type ID '(' argument_list ')' compound_stat .  (5)
+
+	.  reduce 5
+
+
+state 140
+	argument_list : argument_list ',' argument .  (10)
+
+	.  reduce 10
+
+
+state 141
+	print_func : PRINT '(' '"' STR_CONST '"' ')' SEMICOLON .  (89)
+
+	.  reduce 89
+
+
+state 142
+	block_item : stat .  (24)
+
+	.  reduce 24
+
+
+state 143
+	declaration : type . ID '=' initialzer SEMICOLON  (79)
+	declaration : type . ID SEMICOLON  (80)
+
+	ID  shift 148
+	.  error
+
+
+state 144
+	compound_stat : '{' $$1 block_list . '}'  (19)
+	block_list : block_list . block_item  (21)
+
+	PRINT  shift 1
+	IF  shift 2
+	WHILE  shift 3
+	RETURN  shift 4
+	INC  shift 5
+	DEC  shift 6
+	NOT  shift 7
+	I_CONST  shift 8
+	F_CONST  shift 9
+	TRUE  shift 10
+	FALSE  shift 11
+	VOID  shift 12
+	INT  shift 13
+	FLOAT  shift 14
+	BOOL  shift 15
+	STRING  shift 16
+	ID  shift 17
+	'}'  shift 149
+	'"'  shift 18
+	.  error
+
+	stat  goto 142
+	type  goto 143
+	block_item  goto 150
+	declaration  goto 146
+	loop  goto 25
+	expression_stat  goto 26
+	return_stat  goto 27
+	print_func  goto 28
+	select  goto 29
+	func_call  goto 30
+	or_expression  goto 31
+	expression  goto 32
+	and_expression  goto 33
+	equal_expression  goto 34
+	relation_expression  goto 35
+	add_expression  goto 36
+	multi_expression  goto 37
+	unary_expression  goto 38
+	postfix_expression  goto 39
+	simple_expression  goto 40
+	const  goto 41
+
+
+state 145
+	block_list : block_item .  (22)
+
+	.  reduce 22
+
+
+146: reduce/reduce conflict (reduce 23, reduce 25) on PRINT
+146: reduce/reduce conflict (reduce 23, reduce 25) on IF
+146: reduce/reduce conflict (reduce 23, reduce 25) on WHILE
+146: reduce/reduce conflict (reduce 23, reduce 25) on RETURN
+146: reduce/reduce conflict (reduce 23, reduce 25) on INC
+146: reduce/reduce conflict (reduce 23, reduce 25) on DEC
+146: reduce/reduce conflict (reduce 23, reduce 25) on NOT
+146: reduce/reduce conflict (reduce 23, reduce 25) on I_CONST
+146: reduce/reduce conflict (reduce 23, reduce 25) on F_CONST
+146: reduce/reduce conflict (reduce 23, reduce 25) on TRUE
+146: reduce/reduce conflict (reduce 23, reduce 25) on FALSE
+146: reduce/reduce conflict (reduce 23, reduce 25) on VOID
+146: reduce/reduce conflict (reduce 23, reduce 25) on INT
+146: reduce/reduce conflict (reduce 23, reduce 25) on FLOAT
+146: reduce/reduce conflict (reduce 23, reduce 25) on BOOL
+146: reduce/reduce conflict (reduce 23, reduce 25) on STRING
+146: reduce/reduce conflict (reduce 23, reduce 25) on ID
+146: reduce/reduce conflict (reduce 23, reduce 25) on '}'
+146: reduce/reduce conflict (reduce 23, reduce 25) on '"'
+state 146
+	block_item : declaration .  (23)
+	stat : declaration .  (25)
+
+	.  reduce 23
+
+
+state 147
+	select : IF '(' expression ')' compound_stat ELSE compound_stat .  (42)
+
+	.  reduce 42
+
+
+state 148
+	declaration : type ID . '=' initialzer SEMICOLON  (79)
+	declaration : type ID . SEMICOLON  (80)
+
+	SEMICOLON  shift 88
+	'='  shift 90
+	.  error
+
+
+state 149
+	compound_stat : '{' $$1 block_list '}' .  (19)
+
+	.  reduce 19
+
+
+state 150
+	block_list : block_list block_item .  (21)
+
+	.  reduce 21
+
+
+Rules never reduced:
+	func_name : ID  (9)
+	$$3 :  (34)
+
+
+State 17 contains 1 reduce/reduce conflict.
+State 146 contains 19 reduce/reduce conflicts.
+
+
+48 terminals, 37 nonterminals
+90 grammar rules, 151 states

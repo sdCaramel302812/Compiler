@@ -19,29 +19,33 @@ number {digit}+
 int_number {number}+
 float_number {number}+[.]{number}+
 quata ["]
-comment "//"({letter}|{space}|{digit})*|"/*"({letter}|{space}|{digit}|[\n*])*"*/"
+cppcomment "//"({letter}|{space}|{digit})*
+ccomment "/*"({letter}|{space}|{digit}|[\n*])*"*/"
 
 /* Rules section */
 %%
 
 \n	{ ++line_count; }
-{comment}	{ for(int i = 0; *(yytext + i) != '\0'; ++i) {
+{cppcomment}	{printf("%s \t C++ Comment\n", yytext);
+			++comment_line_count;
+			 }
+{ccomment}	{ for(int i = 0; *(yytext + i) != '\0'; ++i) {
 				if(*(yytext + i) == '\n') {
 					++comment_line_count;
 					++line_count;
 				}
 			}
 			++comment_line_count;
-			printf("%s \t COMMENT\n", yytext); }
+			printf("%s \t C Comment\n", yytext); }
 {quata}	{ if(is_string)
 			{
 				is_string = 0;
-				printf("\t STR_CONST\n%s \t QUATA\n", yytext);
+				printf("\t STR_CONST\n%s \t QUOTA\n", yytext);
 			}
 		else
 			{
 				is_string = 1;
-				printf("%s \t QUATA\n", yytext); }}
+				printf("%s \t QUOTA\n", yytext); }}
 "+" 	{ printf("%s \t ADD\n", yytext); }
 " " 	{; }
 "-"		{ printf("%s \t SUB\n", yytext); }

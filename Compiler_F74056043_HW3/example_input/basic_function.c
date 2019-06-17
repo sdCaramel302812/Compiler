@@ -1,4 +1,5 @@
-int foo(int a, int b) {
+float b;
+int foo(int a) {
    a += 6;
    return a;
 }

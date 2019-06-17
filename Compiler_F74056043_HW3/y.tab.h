@@ -39,7 +39,7 @@
 #define YYSTYPE_IS_DECLARED 1
 typedef union {
     int i_val;
-    double f_val;
+    float f_val;
     char* string;
     int b_val;
     struct variable var;

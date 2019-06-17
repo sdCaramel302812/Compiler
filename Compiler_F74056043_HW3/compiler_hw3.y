@@ -14,10 +14,15 @@ char err_func_name[10];
 FILE *file;
 
 int label_number = 0;
-char *label_generator();
+char *label_generator(int label_type, int scope);
 
 int assign_data_type = 0;
 int assign_id = 0;
+
+int postfix_id = 0;
+
+//check if there need to pop
+int stack_height = 0;
 
 struct node {
     struct node *prev;
@@ -30,6 +35,19 @@ struct node {
     char parameter[100];
 };
 
+#define IF_TRUE 0
+#define IF_FALSE 1
+#define BLOCK_END 2
+#define LOOP_BEGIN 3
+
+struct label_node {
+    struct label_node *prev;
+    struct label_node *next;
+    int number;
+    int label_type;
+    int scope;
+};
+
 void syntactic_err(char *err);
 
 void push(struct node *);
@@ -38,6 +56,14 @@ struct node *back();
 int is_empty();
 int find_index(char *id);
 int find_type(char *id);
+
+void push_label(struct label_node *);
+void pop_label(struct label_node *);
+struct label_node *label_back();
+int is_label_empty();
+char *find_label(int label_type);
+void write_label_with_scope(int label_type);
+
 void write_tab();
 
 int seek_prev_line();
@@ -49,6 +75,7 @@ int print_at_lex = 0;
 int dont_print = 0;
 
 struct node *symbol_table;
+struct label_node *label_table;
 
 int scope = 0;
 
@@ -69,7 +96,7 @@ void dump_symbol();
 
 %union {
     int i_val;
-    double f_val;
+    float f_val;
     char* string;
     int b_val;
     struct variable var;
@@ -116,6 +143,8 @@ transition
 
 func
     : type ID '(' argument_list ')' { 
+        stack_height = 0;
+
         struct node *new_node = malloc(sizeof(*new_node));
         strcpy(new_node->name, $2);
         char *tmp = new_node->name;
@@ -152,6 +181,7 @@ func
         } else if (strcmp(param, "float") == 0){
             fprintf(file, "F");
         }
+        //free(tmp2);
         int type = find_type(new_node->name);
         fprintf(file, ")%s\n", type == -1 ? "V" : (type == 0 ? "I" : "F"));
         fprintf(file, ".limit stack 50\n");
@@ -160,6 +190,8 @@ func
          fprintf(file, ".end method\n");
      }
     | type ID '(' ')' { 
+        stack_height = 0;
+
         struct node *new_node = malloc(sizeof(*new_node));
         strcpy(new_node->name, $2);
         char *tmp = new_node->name;
@@ -241,13 +273,14 @@ block_item
 ;
 
 stat
-    : declaration 
+    : declaration
     | loop
-    | expression_stat
+    | expression_stat { if (stack_height != 0){ write_tab(); fprintf(file, "pop\n"); } }
     | return_stat
     | print_func
     | select
     | func_call SEMICOLON
+    | compound_stat
 ;
 
 func_call
@@ -261,7 +294,7 @@ func_call
                 break;
             }
         }
-        fprintf(file, "invokstatic compiler_hw3/%s(", $1);
+        fprintf(file, "invokestatic compiler_hw3/%s(", $1);
         char *tmp2 = malloc(100);
         strcpy(tmp2, find_parameter($1));
         char *param = tmp2;
@@ -283,10 +316,30 @@ func_call
         } else if (strcmp(param, "float") == 0){
             fprintf(file, "F");
         }
+        //free(tmp2);
         int type = find_type($1);
         fprintf(file, ")%s\n", type == -1 ? "V" : (type == 0 ? "I" : "F"));
+        struct variable v;
+        v.type = type;
+        $$ = v;
      }
-    | ID {err_type = 1; strcpy(err_func_name, $1);} '(' ')' {err_type = 0;}
+    | ID {err_type = 1; strcpy(err_func_name, $1);} '(' ')' {
+        err_type = 0;
+        write_tab();
+        char *tmp = $1;
+        for(; *tmp != '\0'; ++tmp){
+            if (*tmp == ' ' || *tmp == '('){
+                *tmp = '\0';
+                break;
+            }
+        }
+        fprintf(file, "invokestatic compiler_hw3/%s()", $1);
+        int type = find_type($1);
+        fprintf(file, ")%s\n", type == -1 ? "V" : (type == 0 ? "I" : "F"));
+        struct variable v;
+        v.type = type;
+        $$ = v;
+    }
 ;
 
 para_list
@@ -297,7 +350,7 @@ para_list
 return_stat
     : RETURN or_expression SEMICOLON {
         int type = 0;
-        if (strcmp($2.type, "float") == 0) {
+        if ($2.type == 1) {
             type = 1;
         }
         write_tab();
@@ -315,12 +368,29 @@ expression_stat
 ;
 
 loop
-    : WHILE '(' expression ')' compound_stat
+    : WHILE { fprintf(file, "%s:\n", label_generator(3, scope)); } '(' expression ')' { fprintf(file, "%s:\n", find_label(0)); } compound_stat {
+        write_tab();
+        fprintf(file, "goto %s\n", find_label(3));
+        fprintf(file, "%s:\n", find_label(1));
+    }
 ;
 
 select
-    : IF '(' expression ')' compound_stat
-    | IF '(' expression ')' compound_stat ELSE multi_select
+    : IF '(' expression ')' { fprintf(file, "%s:\n", find_label(0)); } stat select_bottom
+;
+
+select_bottom
+    :  {
+        fprintf(file, "%s:\n", find_label(1));
+        write_label_with_scope(2);
+    }
+    | ELSE { 
+        write_tab();
+        fprintf(file, "goto %s\n", label_generator(2, scope));
+        fprintf(file, "%s:\n", find_label(1)); 
+    } stat {
+        write_label_with_scope(2);
+    }
 ;
 
 multi_select
@@ -346,13 +416,14 @@ expression
         } else {
             fprintf(file, "fload %d\n", assign_id);
         }
+        stack_height += 1;
     } assign_symbol or_expression {
         char *symbol = malloc(3);
         strcpy(symbol, $3);
         int right_type;
-        if (strcmp($4.type, "int") == 0){
+        if ($4.type == 0){
             right_type = 0;
-        } else if (strcmp($4.type, "float") == 0){
+        } else if ($4.type == 1){
             right_type = 1;
         }
         if (assign_data_type != right_type){
@@ -371,6 +442,7 @@ expression
             } else {
                 fprintf(file, "fadd\n");
             }
+            stack_height -= 1;
             break;
             case '-':
             write_tab();
@@ -379,6 +451,7 @@ expression
             } else {
                 fprintf(file, "fsub\n");
             }
+            stack_height -= 1;
             break;
             case '*':
             write_tab();
@@ -387,6 +460,7 @@ expression
             } else {
                 fprintf(file, "fmul\n");
             }
+            stack_height -= 1;
             break;
             case '/':
             write_tab();
@@ -395,16 +469,20 @@ expression
             } else {
                 fprintf(file, "fdiv\n");
             }
+            stack_height -= 1;
             break;
             case '%':
             write_tab();
             if (assign_data_type == 0){
                 fprintf(file, "irem\n");
             }
+            stack_height -= 1;
             break;
         }
+        free(symbol);
         write_tab();
         fprintf(file, "%sstore %d\n", assign_data_type == 0 ? "i" : "f", assign_id);
+        stack_height -= 1;
      }
 ;
 
@@ -430,266 +508,333 @@ and_expression
 equal_expression
     : relation_expression { $$ = $1; }
     | equal_expression EQ relation_expression {
-        strcpy($1.type, "bool");
+        $1.type = 2;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
         write_tab();
-        fprintf(file, "ifeq %s\n", label_generator());
+        fprintf(file, "ifeq %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
     | equal_expression NE relation_expression {
-        strcpy($1.type, "bool");
+        $1.type = 0;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
         write_tab();
-        fprintf(file, "ifne %s\n", label_generator());
+        fprintf(file, "ifne %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
 ;
 
 relation_expression
     : add_expression { $$ = $1; }
     | relation_expression '>' add_expression {
-        strcpy($1.type, "bool");
+        $1.type = 2;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;        
         write_tab();
-        fprintf(file, "ifgt %s\n", label_generator());
+        fprintf(file, "ifgt %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
     | relation_expression '<' add_expression {
-        strcpy($1.type, "bool");
+        $1.type = 2;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
         write_tab();
-        fprintf(file, "iflt %s\n", label_generator());
+        fprintf(file, "iflt %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
     | relation_expression MTE add_expression {
-        strcpy($1.type, "bool");
+        $1.type = 2;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
         write_tab();
-        fprintf(file, "ifge %s\n", label_generator());
+        fprintf(file, "ifge %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
     | relation_expression LTE add_expression {
-        strcpy($1.type, "bool");
+        $1.type= 2;;
         $$ = $1;
         write_tab();
-        if (strcmp($3.type, "int") == 0){
+        if ($3.type == 0){
             fprintf(file, "isub\n");
-        } else if (strcmp($3.type, "float") == 0){
+        } else if ($3.type == 1){
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
         write_tab();
-        fprintf(file, "ifle %s\n", label_generator());
+        fprintf(file, "ifle %s\n", label_generator(0, scope));
         write_tab();
-        fprintf(file, "goto %s\n", label_generator());
+        fprintf(file, "goto %s\n", label_generator(1, scope));
+        stack_height -= 1;
     }
 ;
 
 add_expression
     : multi_expression { $$ = $1; }
     | add_expression '+' multi_expression {
-        if (strcmp($1.type, "int") == 0 && strcmp($3.type, "float") == 0){
+        if ($1.type == 0 && $3.type == 1){
             int num = seek_prev_line(); 
             char *s = malloc(num + 1); 
             fseek(file, -2, SEEK_CUR);
             fgets(s, num, file); 
-            printf("%s\n", s);
             fseek(file, -num, SEEK_CUR);
             write_tab();
             fprintf(file, "i2f\n");
             write_tab();
             fprintf(file, "%s", s);
-            strcpy($1.type, "float");
+            $1.type = 1;
+            free(s);
         }
-        if (strcmp($3.type, "int") == 0 && strcmp($1.type, "float") == 0){
+        if ($3.type == 0 && $1.type == 1){
             write_tab();
             fprintf(file, "i2f\n");
-            strcpy($3.type, "float");
+            $3.type = 1;
         }
         $$ = $1;
         write_tab(); 
-        if (strcmp($3.type, "int") == 0) {
+        if ($3.type == 0) {
             fprintf(file, "iadd\n"); 
         } else {
             fprintf(file, "fadd\n");
         }
+        stack_height -= 1;
     } 
     | add_expression '-' multi_expression {
-        if (strcmp($1.type, "int") == 0 && strcmp($3.type, "float") == 0){
+        if ($1.type == 0 && $3.type == 1){
             int num = seek_prev_line(); 
             char *s = malloc(num + 1); 
             fseek(file, -2, SEEK_CUR);
             fgets(s, num, file); 
-            printf("%s\n", s);
             fseek(file, -num, SEEK_CUR);
             write_tab();
             fprintf(file, "i2f\n");
             write_tab();
             fprintf(file, "%s", s);
-            strcpy($1.type, "float");
+            $1.type = 1;
+            free(s);
         }
-        if (strcmp($3.type, "int") == 0 && strcmp($1.type, "float") == 0){
+        if ($3.type == 0 && $1.type == 1){
             write_tab();
             fprintf(file, "i2f\n");
-            strcpy($3.type, "float");
+            $3.type = 1;
         }
         $$ = $1;
         write_tab(); 
-        if (strcmp($3.type, "int") == 0) {
+        if ($3.type == 0) {
             fprintf(file, "isub\n"); 
         } else {
             fprintf(file, "fsub\n");
         }
+        stack_height -= 1;
     } 
 ;
 
 multi_expression
     : unary_expression { $$ = $1; }
     | multi_expression '*' unary_expression {
-        if (strcmp($1.type, "int") == 0 && strcmp($3.type, "float") == 0){
+        if ($1.type == 0 && $3.type == 1){
             int num = seek_prev_line(); 
             char *s = malloc(num + 1); 
             fseek(file, -2, SEEK_CUR);
             fgets(s, num, file); 
-            printf("%s\n", s);
             fseek(file, -num, SEEK_CUR);
             write_tab();
             fprintf(file, "i2f\n");
             write_tab();
             fprintf(file, "%s", s);
-            strcpy($1.type, "float");
+            $1.type = 1;
+            free(s);
         }
-        if (strcmp($3.type, "int") == 0 && strcmp($1.type, "float") == 0){
+        if ($3.type == 0 && $1.type == 1){
             write_tab();
             fprintf(file, "i2f\n");
-            strcpy($3.type, "float");
+            $3.type = 1;
         }
         $$ = $1;
         write_tab(); 
-        if (strcmp($3.type, "int") == 0) {
+        if ($3.type == 0) {
             fprintf(file, "imul\n"); 
         } else {
             fprintf(file, "fmul\n");
         }
+        stack_height -= 1;
     } 
     | multi_expression '/' unary_expression
      {
-        if (strcmp($1.type, "int") == 0 && strcmp($3.type, "float") == 0){
+        if ($1.type == 0 && $3.type == 1){
             int num = seek_prev_line(); 
             char *s = malloc(num + 1); 
             fseek(file, -2, SEEK_CUR);
             fgets(s, num, file); 
-            printf("%s\n", s);
             fseek(file, -num, SEEK_CUR);
             write_tab();
             fprintf(file, "i2f\n");
             write_tab();
             fprintf(file, "%s", s);
-            strcpy($1.type, "float");
+            $1.type = 1;
+            free(s);
         }
-        if (strcmp($3.type, "int") == 0 && strcmp($1.type, "float") == 0){
+        if ($3.type == 0 && $1.type == 1){
             write_tab();
             fprintf(file, "i2f\n");
-            strcpy($3.type, "float");
+            $3.type = 1;
         }
         $$ = $1;
         write_tab(); 
-        if (strcmp($3.type, "int") == 0) {
+        if ($3.type == 0) {
             fprintf(file, "idiv\n"); 
         } else {
             fprintf(file, "fdiv\n");
         }
+        stack_height -= 1;
     } 
     | multi_expression MOD unary_expression {
         $$ = $1;
         write_tab(); 
-        if (strcmp($3.type, "int") == 0 && strcmp($1.type, "int") == 0) {
+        if ($3.type == 0 && $1.type == 0) {
             fprintf(file, "irem\n"); 
         }
+        stack_height -= 1;
     } 
 ;
 
 unary_expression
     : postfix_expression { $$ = $1; }
-    | INC unary_expression
-    | DEC unary_expression
+    | INC unary_expression {
+        $$ = $2;
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "iadd\n");
+        write_tab();
+        fprintf(file, "istore %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "iload %d\n", postfix_id);
+    }
+    | DEC unary_expression {
+        $$ = $2;
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "isub\n");
+        write_tab();
+        fprintf(file, "istore %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "iload %d\n", postfix_id);
+    }
     | NOT unary_expression
 ;
 
 postfix_expression
     : simple_expression { $$ = $1; }
-    | postfix_expression INC
-    | postfix_expression DEC
+    | postfix_expression INC {
+        $$ = $1;
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "iadd\n");
+        write_tab();
+        fprintf(file, "istore %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "iload %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "isub\n");
+    }
+    | postfix_expression DEC {
+        $$ = $1;
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "isub\n");
+        write_tab();
+        fprintf(file, "istore %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "iload %d\n", postfix_id);
+        write_tab();
+        fprintf(file, "ldc 1\n");
+        write_tab();
+        fprintf(file, "iadd\n");
+    }
 ;
 
 simple_expression
-    : const { $$ = $1; }
+    : const { $$ = $1; stack_height += 1; }
     | ID { 
+        stack_height += 1;
         struct variable v;
         char *tmp = $1;
         for(char *i = tmp; *i != '\0'; ++i){
-                if (*i == ';' || *i == ' ' || *i == '=' || *i == ')' || *i == '(') {
-                    *i = '\0';
-                }
+            if (*i == ';' || *i == ' ' || *i == '=' || *i == ')' || *i == '(' || *i == '+' || *i == '-' || *i == '>' || *i == '<' || *i == '*' || *i == '/') {
+                *i = '\0';
             }
+        }
         int id = find_index($1);
+        postfix_id = id;
         int type = find_type($1);
         int variable_scope = find_scope($1);
         write_tab();
         if (variable_scope == 0){
             if (type == 0){
                 fprintf(file, "getstatic compiler_hw3/%s I\n", $1);
-                strcpy(v.type, "int");
+                v.type = 0;
             } else if (type == 1){
                 fprintf(file, "getstatic compiler_hw3/%s F\n", $1);
-                strcpy(v.type, "float");
+                v.type = 1;
             }
         }else {
             if (type == 0) {
                 fprintf(file, "iload %d\n", id);
-                strcpy(v.type, "int");
+                v.type = 0;
             } else if (type == 1){
                 fprintf(file, "fload %d\n", id);
-                strcpy(v.type, "float");
+                v.type = 1;
             }
         }
         $$ = v;
     }
-    | func_call {struct variable v; $$ = v; }
+    | func_call { $$ = $1; }
 ;
 
 declaration
@@ -761,7 +906,7 @@ declaration
             if ($1 == "int"){
                 fprintf(file, ".field public static %s I = 0\n", $2);
             } else if ($1 == "float") {
-                fprintf(file, ".field public static %s F = 0\n", $2);
+                fprintf(file, ".field public static %s F = 0.000000001\n", $2);
             } else if ($1 == "bool") {
                 fprintf(file, ".field public static %s Z = 0\n", $2);
             }
@@ -789,11 +934,50 @@ initialzer
 ;
 
 const
-    : I_CONST { float tmp = (float)$1; struct variable v; v.i_val = tmp; strcpy(v.type, "int"); $$ = v; write_tab(); fprintf(file, "ldc %d\n", $1); }
-    | F_CONST { struct variable v; v.f_val = $1; strcpy(v.type, "float"); $$ = v; write_tab(); fprintf(file, "ldc %f\n", $1); }
+    : I_CONST { 
+        float tmp = (float)$1; 
+        struct variable v; 
+        v.i_val = $1; 
+        v.f_val = tmp;
+        v.type = 0;
+        $$ = v;
+        if (scope != 0){ 
+            write_tab(); 
+            fprintf(file, "ldc %d\n", v.i_val); 
+        }
+    }
+    | F_CONST { 
+        struct variable v; 
+        v.f_val = $1; 
+        v.i_val = (int)$1;
+        v.type = 1;
+        $$ = v;
+        if (scope != 0){ 
+            write_tab(); 
+            fprintf(file, "ldc %f\n", v.f_val); 
+        }
+    }
     | '"' STR_CONST '"' { }
-    | TRUE { struct variable v; v.i_val = 1; strcpy(v.type, "int"); $$ = v; write_tab(); fprintf(file, "ldc %d\n", 1); }
-    | FALSE { struct variable v; v.i_val = 0; strcpy(v.type, "int"); $$ = v; write_tab(); fprintf(file, "ldc %d\n", 0); }
+    | TRUE { 
+        struct variable v; 
+        v.i_val = 1; 
+        v.type = 0;
+        $$ = v;
+        if (scope != 0){ 
+            write_tab(); 
+            fprintf(file, "ldc %d\n", 1); 
+        }
+    }
+    | FALSE { 
+        struct variable v; 
+        v.i_val = 0; 
+        v.type = 0;
+        $$ = v; 
+        if (scope != 0){
+            write_tab(); 
+            fprintf(file, "ldc %d\n", 0); 
+        }
+    }
 ;
 
 print_func
@@ -873,6 +1057,11 @@ int main(int argc, char** argv)
     symbol_table->index = -1;
     symbol_table->scope_level = 0;
 
+    label_table = (struct label_node *)malloc(sizeof(struct label_node));
+    label_table->next = label_table;
+    label_table->prev = label_table;
+    label_table->number = -1;
+
     file = fopen("compiler_hw3.j","w+");
 
     fprintf(file,   ".class public compiler_hw3\n"
@@ -946,8 +1135,11 @@ void print_re(struct node *n){
 
 void leave_scope(struct node *n){
     struct node *tmp = n;
+    if (scope + 1 != tmp->scope_level){
+        return;
+    }
     pop();
-    if (!is_empty() && back()->scope_level == tmp->scope_level){
+    if (!is_empty() && scope + 1 == tmp->scope_level){
         leave_scope(back());
     }
 }
@@ -972,12 +1164,18 @@ int seek_prev_line(){
         fseek(file, -num, SEEK_END);
         fgets(s, 4, file);
     } 
+    free(s);
     return num;
 }
 
-char *label_generator(){
+char *label_generator(int label_type, int scope){
     char *tmp = malloc(10);
     sprintf(tmp, "LABEL_%d", label_number);
+    struct label_node *new_node = (struct label_node *)malloc(sizeof(struct label_node));
+    new_node->label_type = label_type;
+    new_node->number = label_number;
+    new_node->scope = scope;
+    push_label(new_node);
     ++label_number;
     return tmp;
 }
@@ -1000,7 +1198,7 @@ void push(struct node * n){
     n->next = tmp;
     tmp->prev->next = n;
     tmp->prev = n;
-    if (n->scope_level == n->prev->scope_level){
+    if (n->prev->scope_level != 0){
         n->index = n->prev->index + 1;
     }
     else {
@@ -1009,17 +1207,17 @@ void push(struct node * n){
 }
 
 int find_index(char *id){
-    struct node *tmp = symbol_table->next;
+    struct node *tmp = back();
     while(tmp != symbol_table){
         if(strcmp(id, tmp->name) == 0){
             return tmp->index;
         }
-        tmp = tmp->next;
+        tmp = tmp->prev;
     }
 }
 
 int find_type(char *id){
-    struct node *tmp = symbol_table->next;
+    struct node *tmp = back();
     while(tmp != symbol_table){
         if (strcmp(id, tmp->name) == 0){
             if (strcmp(tmp->d_type, "int") == 0 || strcmp(tmp->d_type, "bool") == 0){
@@ -1030,27 +1228,27 @@ int find_type(char *id){
                 return -1;
             }
         }
-        tmp = tmp->next;
+        tmp = tmp->prev;
     }
 }
 
 int find_scope(char *id){
-    struct node *tmp = symbol_table->next;
+    struct node *tmp = back();
     while(tmp != symbol_table){
         if (strcmp(id, tmp->name) == 0){
             return tmp->scope_level;
         }
-        tmp = tmp->next;
+        tmp = tmp->prev;
     }
 }
 
 char *find_parameter(char *id){
-    struct node *tmp = symbol_table->next;
+    struct node *tmp = back();
     while(tmp != symbol_table){
         if (strcmp(id, tmp->name) == 0){
             return tmp->parameter;
         }
-        tmp = tmp->next;
+        tmp = tmp->prev;
     }
 }
 
@@ -1073,5 +1271,69 @@ int is_empty(){
     }
     else {
         return 0;
+    }
+}
+
+void push_label(struct label_node *n){
+    struct label_node *tmp = label_back();
+    n->prev = tmp;
+    n->next = label_table;
+    tmp->next = n;
+    label_table->prev = n;
+}
+
+void pop_label(struct label_node *node){
+    struct label_node *tmp = label_back();
+    while(tmp != node){
+        if (tmp == label_table){
+            return;
+        }
+        tmp = tmp->prev;
+    }
+    tmp->next->prev = tmp->prev;
+    tmp->prev->next = tmp->next;
+    free(tmp);
+}
+
+struct label_node *label_back(){
+    return label_table->prev;
+}
+
+int is_label_empty(){
+    if (label_table->prev == label_table){
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+char *find_label(int label_type){
+    struct label_node *tmp = label_back();
+    while (tmp->label_type != label_type){
+        if (tmp == label_table){
+            return "";
+        }
+        tmp = tmp->prev;
+    }
+    char *label_name = malloc(10);
+    sprintf(label_name, "LABEL_%d", tmp->number);
+    pop_label(tmp);
+    return label_name;
+}
+
+void write_label_with_scope(int label_type){
+    struct label_node *tmp = label_back();
+    int scope = tmp->scope;
+    while(tmp != label_table){
+        if (tmp->label_type == label_type){
+            if (tmp->scope != scope){
+                return;
+            }
+            fprintf(file, "LABEL_%d:\n", tmp->number);
+            struct label_node *pop_node = tmp;
+            tmp = tmp->prev;
+            pop_label(pop_node);
+        }
+        tmp = tmp->prev;
     }
 }

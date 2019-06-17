@@ -1,6 +1,7 @@
 .class public compiler_hw3
 .super java/lang/Object
-.method public static foo(II)I
+.field public static b F = 0.000000001
+.method public static foo(I)I
 .limit stack 50
 .limit locals 50
 	iload 0
@@ -26,9 +27,10 @@
 	istore 0
 	iload 0
 	ldc 4
-	invokstatic compiler_hw3/foo(II)I
+	invokestatic compiler_hw3/foo(I)I
 	istore 0
+	pop
 	iload 0
-	invokstatic compiler_hw3/lol(I)V
+	invokestatic compiler_hw3/lol(I)V
 	return
 .end method
